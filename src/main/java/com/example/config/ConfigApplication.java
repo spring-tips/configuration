@@ -27,13 +27,14 @@ public class ConfigApplication {
 		Environment environment,
 		@Value("${program-argument:NO PROGRAM ARGUMENT PROVIDED!!}") String programArgument,
 		@Value("${HOME}") String userHome,
-		@Value("${username}") String vaultMessage,
+		@Value("${message-from-vault-server}") String messageFromVaultServer,
+		@Value("${message-from-config-server}") String messageFromConfigServer,
 		@Value("${message-from-property-source}") String propertySource,
 		@Value("${message-from-value}") String value,
 		MessageProperties messageProperties) {
 		return args -> {
-			log.info("secure vault message: " + vaultMessage);
-			log.info("$VAULT_TOKEN: " + vaultToken);
+			log.info("message from Spring Cloud Config Server: " + messageFromConfigServer);
+			log.info("message from Vault: " + messageFromVaultServer);
 			log.info("message from a PropertySource : " + propertySource);
 			log.info("from the environment: " + environment.getProperty("message-from-environment"));
 			log.info("program-argument: " + programArgument);
@@ -42,8 +43,6 @@ public class ConfigApplication {
 			log.info("message from @Value: " + value);
 		};
 	}
-
-
 
 	@Autowired
 	void contributePropertySource(ConfigurableEnvironment configurableEnvironment) {

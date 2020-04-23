@@ -1,3 +1,9 @@
+<iframe width="560" height="315" src="https://www.youtube.com/embed/PsNNGuLi0ns" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+speaker: [Josh Long (@starbuxman) ](http://twitter.com/starbuxman)
+
+
 Hi, Spring fans! Welcome to another installment of Spring tips! in this installment, we're going to look at something that's rather foundational, and something that I wish I'd addressed earlier: configuration. And no, I don't mean functional configuration or java configuration or anything like that, I'm talking about the string values that inform how your code executes. the stuff that you put in application.properites. _that_ configuration. 
 
 All configuration in Spring emanates from the Spring `Environment` abstraction. The `Environment` is sort of like a dictionary - a map with keys and values. `Environment` is just an interface through which we can ask questions about, you know, the `Environment`. The abstraction lives in Spring Framework and was introduced in Spring 3, more than a decade ago. up until that point, there was a focused mechanism to allow integration of configuration called property placeholder resolution. This environment mechanism and the constellation of classes around that interface more than supersede that old support. if you find a blog still using those types, may I suggest you move on to newer and greener pastures? :) 
@@ -198,7 +204,7 @@ Spring Boot is _very_ flexible in its sourcing of the values. It doesn't care if
 
 This idea - of externalizing configuration for an application from the environment - is not new. It's well understood and described in the [12-factor manifesto](https://12factor.net/config). The 12-factor manifesto says that environment-specific config should live in that environment, not in the code itself. This is because we want one build for all the environments. Things that change should be external. So far, we've seen that Spring Boot can pull in configuration from the command line arguments (program arguments), and environment variables. It can also read configuration coming from JOpt. It can come even from a JNDI context if you happen to be running in an application server with one of those around! 
 
-Spring Boots's ability o pull in any environment variable is beneficial here. It's also more secure than using program arguments because the program arguments will show p in the output of tools like `ps aux`. Environment variables are a better fit.
+Spring Boots's ability o pull in any environment variable is beneficial here. It's also more secure than using program arguments because the program arguments will show up in the output of operating system tools. Environment variables are a better fit.
 
 So far, we've seent hat Spring Boot can pull in configuration from a lot of different places. It knows about profiles, it knows about `.yml.` and `.properties`.  It's pretty flexible! But what if it doesn't know how to do what you want it to do? You can easily reach its new tricks using a custom `PropertySource<T>`. You might want to do something like this if you wish to, for example, to integrate your application with the configuration you're storing in an external database or a directory or some other things about which Spring Boot doesn't automatically know. 
 

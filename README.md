@@ -1,40 +1,12 @@
-# Configuration 
-<!-- 
-* property values from the Environment 
-* property values from `application.properties`
-* property values from profiles (`application-default.properties`, `application-dev.properties`)
-* default property values `${foo:default}`
-* property values from the environment variables (`$HOME`) (12 factor config)
-* property values from `--`, adjacent `application.properties`, JNDI, etc
-* property source from a custom `PropertySource` by customizing the `SpringApplicationBuilder()`
-* `@ConfigurationProperties` && `@ConstructorBinding`
-* config server 
-* vault 
+Hi, Spring fans! Welcome to another installment of Spring tips! in this installment, we're going to look at something that's rather foundational, and something that I wish I'd addressed earlier: configuration. And no, I don't mean functional configuration or java configuration or anything like that, I'm talking about the string values that inform how your code executes. the stuff that you put in application.properites. _that_ configuration. 
 
-```bash
+All configuration in Spring emanates from the Spring `Environment` abstraction. The `Environment` is sort of like a dictionary - a map with keys and values. `Environment` is just an interface through which we can ask questions about, you know, the `Environment`. The abstraction lives in Spring Framework and was introduced in Spring 3, more than a decade ago. up until that point, there was a focused mechanism to allow integration of configuration called property placeholder resolution. This environment mechanism and the constellation of classes around that interface more than supersede that old support. if you find a blog still using those types, may I suggest you move on to newer and greener pastures? :) 
 
-export VAULT_ADDR="https://localhost:8200"
-export VAULT_SKIP_VERIFY=true
-export VAULT_TOKEN=00000000-0000-0000-0000-000000000000
-vault server --dev --dev-root-token-id="00000000-0000-0000-0000-000000000000"
+Let's get started. Go to the Spring Initializr and generate a new project and make sure to choose `Spring Cloud Vault`, `Lombok`, and  `Spring Cloud Config Client`. I named my project `configuration`. Go ahead and click `Generate` the application. Open the project in your favorite IDE. If you want to follow along, be sure to disable the Spring Cloud Vault and Spring Clod Config Lcieny dependencies. We don't need them right now.
 
-export VAULT_ADDR="http://localhost:8200"
-export VAULT_SKIP_VERIFY=true
-export VAULT_TOKEN=00000000-0000-0000-0000-000000000000
-vault kv put secret/bootiful message-from-vault-server="Hello Vault"
+The first step for most Spring Boot developers is to use application.properties. The Spring Initializr even puts an empty application.properties in the `src/main/resources/application.properties.` folder when you generate a new project there! Super convenient. You _do_ create your projects on the Spring Initializr, don't ya'?  You could use appication.properties or applicatin.yml. I don't particularly love `.yml` files, but you can use it if that's more your taste. 
 
-``` -->
-
-
-Hi, spring fans! welcome to another installment of Spring tips! in this installment were going to tlook at something thats rather foundationa, sna something that i wish id adressed earlier: configuratino. And no i dont mean functional configuration or java configuration or anyting like th, im taling about the string values that inform how your code eecutes. the stuff that yo put in application.properites. _that_ configuration. 
-
-All confuguration in Spring emininats fromt he Spring `Environment` abstractin. the environment is sort of like a dictionary  a map with keys an values. Environment is just an interface through which we can ask questions about, you know, the environnet. the abstraction lives in Spring Framework, and was introduced in Spring 3, more than a decade ago. up intil that point there was a focued mechanism to allowe integratino of configueation caled property placeholder resolition. tzhi snvironment mecanism and the constellation of classes around that interface more than supercede that old support. if you find a blog still using thos types, may i suggest u move on to newer and greener pastures? :) 
-
-Lets get started. go to the sprin ginitialir and geenrate a new project and make sure to choose `Spring Cloud Vault`, `Lombok`, and  `Spring Cloud Config Client`. I named my project `configuration`. Go ahead and  click `Generate` the application. Open the project in your favorit IDE. I fyou want to flloow aloong, be sure to disable the Sprin CLou dVault and Spring Clod Config Lcieny dependecies. We dont need them right now.
-
-The first steps mofr most Spring Boot developers is ot use application.properties. The Spring Initializr even puts am empty application.properties in the `src/main/resources/application.properties` folde whn you generate  anew project there! Super conveninent. You _do_ generate your projects on the Spring iNitializr, don't ya?  You could use appication.properties or applicatin.yml. I don't particualrly love yaml files, but you can use it if thats your taste. 
-
-Spring Boot automatically loads applicatino.proeprties whenever it starts up. You can dereference value sfrom the property file in your java code through the environment. Put a propert in `application.properties` file, like this.
+Spring Boot automatically loads the `application.properties` whenever it starts up. You can dereference values from the property file in your java code through the environment. Put a property in the `application.properties` file, like this.
 
 ```properties
 message-from-application-properties=Hello from application.properties
@@ -56,28 +28,28 @@ import org.springframework.core.env.Environment;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigurationApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(Environment environment) {
-		return args -> {
-			log.info("message from application.properties " + environment.getProperty("message-from-application-properties"));
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(Environment environment) {
+        return args -> {
+            log.info("message from application.properties " + environment.getProperty("message-from-application-properties"));
+        };
+    }
 }
 ```
 
-Run this and youll see the value form the configueation property file in the output of the log. If you want to change which file SPring Boot rads by defaut, you can do that too. it's a chicken and egg prpblem tho - you need to specify a property that Spring Boot wil luse to figue out where to load all the properties. So you need to speciffy this outside of the application.properties file. You can use a program argument or an envirtonment vatiable to specify the `spring.config.name` property. 
+Run this, and you'll see the value form the configuration property file in the output of the log. If you want to change which file SPring Boot rads by default, you can do that too. It's a chicken and egg problem, though - you need to specify a property that Spring Boot will use to figure out where to load all the properties. So you need to specify this outside of the application.properties file. You can use a program argument or an environment variable to fill the `spring.config.name` property. 
 
 ```shell 
 export SPRING_CONFIG_NAME=foo
 ```
 
-Re-run the application now with that environment variable in scope  and it'll fail becaue itll try to load `foo.properties`, not `application.properties`.
+Re-run the application now with that environment variable in scope, and it'll fail because it'll try to load `foo.properties`, not `application.properties`.
 
-Incidentally, you could also run the application with configurationy tht live s_outside_ the application, adjacent to the jar, like this. If you run the application liek this, the values in the external `applicatin.properties` will override the values inside the `.jar`.
+Incidentally, you could also run the application with the configuration that lives _outside_ the application, adjacent to the jar, like this. If you run the application like this, the values in the external `applicatin.properties` will override the values inside the `.jar`.
 
 ```shell
 .
@@ -85,30 +57,24 @@ Incidentally, you could also run the application with configurationy tht live s_
 └── configuration-0.0.1-SNAPSHOT.jar
 
 0 directories, 2 files
-
 ```
 
-Spring Boot is aware of Spring profiles, as well. Profiles are a mechanism that let you tag objects and property files so that they can be seleteively activate or deactivated at runtime. Thi sis great if you want ot have environment specificc configuhratio. Yo ucan tag a spring bean or a configuration file as belonging to a parituclar profile and SPring iwl automatically load it for you when that profile is activated.
+Spring Boot is aware of Spring profiles, as well. Profiles are a mechanism that lets you tag objects and property files so that they can be selectively activated or deactivated at runtime. This is great if you want to have an environment-specific configuration. You can tag a Spring bean or a configuration file as belonging to a particular profile, and Spring will automatically load it for you when that profile is activated.
 
-Profile names are, basically, arbitrary. there are some profiles that are magic - that Spring honors in a parituclar way. But generally, the names areup tp you. i find it very useful to map my profiles to differen tenvironemtns, dev, qa, staging, prod, etc.
+Profile names are, basically, arbitrary. Some profiles are magic - that Spring honors in a particular way. The most interesting of these is `default`, which is activated when no other profile is active. But generally, the names are up to you. I find it very useful to map my profiles to different environments: `dev`, `qa`, `staging`, `prod`, etc.
 
+Let's say that there's a profile called `dev`. Spring Boot will automatically load `application-dev.properties`. It'll load that in addition to applicatin.properties. If there are any conflicts between values in the two files, then the more specific file - the one with the profile - wins. You could have a default value that applies absent a particular profile, and then provide specifics in the config for a profile. 
 
-Let's say that theres a profile called `dev`. Spring Boot will automatically load `application-dev.properties`. It'll laod that in addition to applicatin.properties. fi there are any conflcits between values in the the two files, then more specific file - the one with the profile - wins. you could have a default value that applies absent a partiular profike, and then provide specifcs in the config for a prfile. 
+You can activate a given profile in several different ways, but the easiest is just to specify it on the command line. Or you could turn it on in your IDE's run configurations dialog box. IntelliJ and Spring Tool Suite both provide a place to specify the profile to sue when running the application. You can also set an env var, `SPRING_PROFILES_ACTIVE`, or specify an argument on the command line `--spring.profiles.active`. Either one accepts a comma-delimited list of profiles - you can activate more than one profile at a time. 
 
-
-You can activate a given profile a number o didferent ways but the easiest is to just speicfy it on the command line. or you could turn it on in your IDE's run configurations dialog box. IntelliJ and Spring Tool Suite bothprovide a palce to specify the profile to sue when running the application. You can also set an env var, `SPRING_PROFILES_ACTIVE`, or specify an argument on the command line `--spring.profiles.active`. Either one acepts a comma delimited list of profiles - you  can activate more than on eprofle at a time. 
-
-
-Le'ts try that out. 
-
-Creat sa file called application-dev.properiotes. Put the following value in to it.
+Le'ts try that out. Create a file called `application-dev.properties`. Put the following value in it.
 
 
 ```properties
 message-from-application-properties=Hello from dev application.properties
 ```
 
-Thi shas the same keuy as the one in application.properties. The java code here is identical to what we had before. Jut be sure to specificy the prfile before you start the Spring aplication. You can use the envronment variable, properties, etc. You can even speicfy it programmatically when building the `SpringApplication` in the `main()` method. 
+This property has the same key like the one in `application.properties`. The java code here is identical to what we had before. Just be sure to specify the profile before you start the Spring application. You can use the environment variable, properties, etc. You can even define it programmatically when building the `SpringApplication` in the `main()` method. 
 
 ```java
 package com.example.configuration.profiles;
@@ -124,28 +90,28 @@ import org.springframework.core.env.Environment;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		// this works
-		// export SPRING_PROFILES_ACTIVE=dev  
-		// System.setProperty("spring.profiles.active", "dev"); // so does this
-		new SpringApplicationBuilder()
-			.profiles("dev") // and so does this
-			.sources(ConfigurationApplication.class)
-			.run(args);
-	}
+    public static void main(String[] args) {
+        // this works
+        // export SPRING_PROFILES_ACTIVE=dev  
+        // System.setProperty("spring.profiles.active", "dev"); // so does this
+        new SpringApplicationBuilder()
+            .profiles("dev") // and so does this
+            .sources(ConfigurationApplication.class)
+            .run(args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(Environment environment) {
-		return args -> {
-			log.info("message from application.properties " + environment.getProperty("message-from-application-properties"));
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(Environment environment) {
+        return args -> {
+            log.info("message from application.properties " + environment.getProperty("message-from-application-properties"));
+        };
+    }
 }
 ```
 
-Run the applicatino and youll see the speciflized mesage reflected in the output. 
+Run the application, and you'll see the specialized message reflected in the output. 
 
-So far weve been using the ENvironment to inject the configuratio. you can also use `@Value` annotation to inject the value as a parameter. You probabl already knw tha. but di you know that youc an also specify default valeus to be returned if the re are no other values that match? There are a lot of reason why you might want to do this. yo could use it prive fallback values and to mak eit clearer when somebody fat fingers the spelling of a property. Its also useful becaue you are given a vlae tahat might be sueful if somebody doesnt know thay they need to ativate a pofil or somethign,.
+So far, we've been using the ENvironment to inject the configuration. You can also use `@Value` annotation to inject the value as a parameter. You probably already know that. But did you know that you can also specify default values to be returned if there are no other values that match? There are a lot of reasons why you might want to do this. You could use it to provide fallback values and make it more transparent when somebody fat fingers the spelling of a property. It is also useful because you are given a value that might be useful if somebody doesn't know that they need to activate a profile or something,.
 
 
 ```java
@@ -162,31 +128,29 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigurationApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(
-		@Value("${message-from-application-properties:OOPS!}") String valueDoesExist,
-		@Value("${mesage-from-application-properties:OOPS!}") String valueDoesNotExist) {
-		return args -> {
-			log.info("message from application.properties " + valueDoesExist);
-			log.info("missing message from application.properties " + valueDoesNotExist);
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(
+        @Value("${message-from-application-properties:OOPS!}") String valueDoesExist,
+        @Value("${mesage-from-application-properties:OOPS!}") String valueDoesNotExist) {
+        return args -> {
+            log.info("message from application.properties " + valueDoesExist);
+            log.info("missing message from application.properties " + valueDoesNotExist);
+        };
+    }
 }
 ```
 
-
-
-Convenient, eh? Also, note that the default String that you providee can in turn interpolate some other property. So yuo could do somethinng like this, assumign a key like `default-error-message` does exist somewehre in your applicatin configration: 
+Convenient, eh? Also, note that the default String that you provide can, in turn, interpolate some other property. So you could do something like this, assuming a key like `default-error-message` does exist somewhere in your application configuration: 
 
 `${message-from-application-properties:${default-error-message:YIKES!}}`
 
-That will evaluate the first peoprty if it exists, then the second and then the String `YIKES!`, fianlly. 
+That will evaluate the first property if it exists, then the second and then the String `YIKES!`, finally. 
 
-Earlier, we looked at how to speicfy a profile using an environment atiable or program argument. this mechanism - configuraing SPring bOot with envrionent variables or program aguments - is actually general purppose. You can use it for any arbitrary key. Sprig Boot will normalize hte configuration for you. Ay key that you would out in application.properties can be speificed externally in this way. Let's see some eamples. Let's sppose you want to specify the URL for a datasource connectin. You _cold_ harcode that  vale in the application.properties, ut thats not very secure. might be miuch better to sintead create an env variable that only exists in production. that way the develiopers dont have caccess to the keys to the production database and so on. 
+Earlier, we looked at how to specify a profile using an environment variable or program argument. This mechanism - configuring Spring Boot with environment variables or program arguments - is a general-purpose. You can use it for any arbitrary key, and Spring Boot will normalize the configuration for you. Any key that you would out in application.properties can be specified externally in this way. Let's see some examples. Let's suppose you want to specify the URL for a data source connection. You _could_ hardcode that value in the application.properties, but that's not very secure. It might be much better to create instead an environment variable that only exists in production. That way, the developers don't have access to the keys to the production database and so on. 
 
 Let's try it out. Heres the java code fo the example. 
 
@@ -205,38 +169,38 @@ import org.springframework.core.env.Environment;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		// simulate program arguments
-		String[] actualArgs = new String[]{"spring.datasource.url=jdbc:postgres://localhost/some-prod-db"};
-		SpringApplication.run(ConfigurationApplication.class, actualArgs);
-	}
+    public static void main(String[] args) {
+        // simulate program arguments
+        String[] actualArgs = new String[]{"spring.datasource.url=jdbc:postgres://localhost/some-prod-db"};
+        SpringApplication.run(ConfigurationApplication.class, actualArgs);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(Environment environment) {
-		return args -> {
-			log.info("our database URL connection will be " + environment.getProperty("spring.datasource.url"));
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(Environment environment) {
+        return args -> {
+            log.info("our database URL connection will be " + environment.getProperty("spring.datasource.url"));
+        };
+    }
 }
 
 ```
 
-Befoer eou run it be sure to either export an environment variable in the shell that you use to run  your application  or to specify a program argument.  I simulate the latter - the program arguments - by intercepting the `public static void main(String [] args)` that we pass into the Spring Boot application here. You can also specufy an env variable like this: 
+Before you run it, be sure to either export an environment variable in the shell that you use to run your application or to specify a program argument.  I simulate the latter - the program arguments - by intercepting the `public static void main(String [] args)` that we pass into the Spring Boot application here. You can also specify an env variable like this: 
 
 ```shell
 export SPRING_DATASOURCE_URL=some-arbitrary-value
 mvn -DskipTests=true spring-boot:run 
 ```
 
-Run the program multple times, trying out the differnet approaches, adn you ll sethe rrules in the output. Rheres no autoconfiguration in the applicatino that will connect to a database, so were using this propety as an example. the url doesnt have to be a valid url (at least not unitl you add Spring's JDBC support and a JDBC driver to the classpath).
+Run the program multiple times, trying out the different approaches, and you will see the values in the output. There's no autoconfiguration in the application that will connect to a database, so we're using this property as an example. The URL doesn't have to be a valid URL (at least not until you add Spring's JDBC support and a JDBC driver to the classpath).
 
-What shoul dbe implied in all of this is that spring Boot is very flexible in its sourcing of the values. it doesnt care if you do `SPRING_DATASOURCE_URL`, `spring.datasource.url`, etc. Spring Boot calls this _relaxed binding_. It allows you to do things in a way that's most natural for idfferent environments, while still working for SPring Boot.
+Spring Boot is _very_ flexible in its sourcing of the values. It doesn't care if you do `SPRING_DATASOURCE_URL`, `spring.datasource.url`, etc. Spring Boot calls this _relaxed binding_. It allows you to do things in a way that's most natural for different environments, while still working for Spring Boot.
 
-This idea - of extnelaizing cofnigutation for an application from the envrionemtn - is not a nw idea. its well understood and escribed in the 12 factor manifesto. the 12 factor manifesto says that enviroennt specifi cocnfi should live in tat enironment, not in the code itself. this is because we want one build for all the environemtns. things that change should be external. So fr weve seen that Spring Boot can pull in confguration from the comand line arguments (program arguments) , and from  environment vatiables. ti can also be made to read in confguration foming from JOpt or even from a JNDI contert if you happen to be running in an application server with one of those around! 
+This idea - of externalizing configuration for an application from the environment - is not new. It's well understood and described in the [12-factor manifesto](https://12factor.net/config). The 12-factor manifesto says that environment-specific config should live in that environment, not in the code itself. This is because we want one build for all the environments. Things that change should be external. So far, we've seen that Spring Boot can pull in configuration from the command line arguments (program arguments), and environment variables. It can also read configuration coming from JOpt. It can come even from a JNDI context if you happen to be running in an application server with one of those around! 
 
-Spring Boots abilityt o pull in any environment variable is very helful here. It's also more secure than using progteam arguments because the program arguments will show p in the output of tools like `ps axu`. Environment variables are a better fit.
+Spring Boots's ability o pull in any environment variable is beneficial here. It's also more secure than using program arguments because the program arguments will show p in the output of tools like `ps aux`. Environment variables are a better fit.
 
-So far weve seent hat Spring Boot can pull in confiureatino from a lot ofdifferent places. It knows about profiles, it knows about `.yml` and `.properties`.  It's pretyt flexivile! But what if it doesnt now how to do what yo uwant it to do? You an easily reach it new tricks using a custom `PropertySource<T>`. Yo might want to do something like thisif you want, for example to integrate your application with cnfiguatino youre storing in an external database or a directory or someth other thing tht Spting Boot doesnt automatically know about. 
+So far, we've seent hat Spring Boot can pull in configuration from a lot of different places. It knows about profiles, it knows about `.yml.` and `.properties`.  It's pretty flexible! But what if it doesn't know how to do what you want it to do? You can easily reach its new tricks using a custom `PropertySource<T>`. You might want to do something like this if you wish to, for example, to integrate your application with the configuration you're storing in an external database or a directory or some other things about which Spring Boot doesn't automatically know. 
 
 ```java
 
@@ -254,46 +218,46 @@ import org.springframework.core.env.PropertySource;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		new SpringApplicationBuilder()
-			.sources(ConfigurationApplication.class)
-			.initializers(context -> context
-				.getEnvironment()
-				.getPropertySources()
-				.addLast(new BootifulPropertySource())
-			)
-			.run(args);
-	}
+    public static void main(String[] args) {
+        new SpringApplicationBuilder()
+            .sources(ConfigurationApplication.class)
+            .initializers(context -> context
+                .getEnvironment()
+                .getPropertySources()
+                .addLast(new BootifulPropertySource())
+            )
+            .run(args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(@Value("${bootiful-message}") String bootifulMessage) {
-		return args -> {
-			log.info("message from custom PropertySource: " + bootifulMessage);
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(@Value("${bootiful-message}") String bootifulMessage) {
+        return args -> {
+            log.info("message from custom PropertySource: " + bootifulMessage);
+        };
+    }
 }
 
 class BootifulPropertySource extends PropertySource<String> {
 
-	BootifulPropertySource() {
-		super("bootiful");
-	}
+    BootifulPropertySource() {
+        super("bootiful");
+    }
 
-	@Override
-	public Object getProperty(String name) {
+    @Override
+    public Object getProperty(String name) {
 
-		if (name.equalsIgnoreCase("bootiful-message")) {
-			return "Hello from " + BootifulPropertySource.class.getSimpleName() + "!";
-		}
+        if (name.equalsIgnoreCase("bootiful-message")) {
+            return "Hello from " + BootifulPropertySource.class.getSimpleName() + "!";
+        }
 
-		return null;
-	}
+        return null;
+    }
 }
 
 
 ```
 
-The xample above is the safest way to register a `PropertySource` early enough on that everything that needs it will be able to find it. You can also do it at runtime, when Spring has started wiring objects together and you have acccess to configured objects, but i woulnt be sure that this will work in every situation. Heres how that might look . 
+The example above is the safest way to register a `PropertySource` early enough on that everything that needs it will be able to find it. You can also do it at runtime when Spring has started wiring objects together, and you have access to configured objects, but I wouldn't be sure that this will work in every situation. Heres how that might look. 
 
 
 ```java
@@ -313,50 +277,50 @@ import org.springframework.core.env.PropertySource;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigurationApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(@Value("${bootiful-message}") String bootifulMessage) {
-		return args -> {
-			log.info("message from custom PropertySource: " + bootifulMessage);
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(@Value("${bootiful-message}") String bootifulMessage) {
+        return args -> {
+            log.info("message from custom PropertySource: " + bootifulMessage);
+        };
+    }
 
-	@Autowired
-	void contributeToTheEnvironment(ConfigurableEnvironment environment) {
-		environment.getPropertySources().addLast(new BootifulPropertySource());
-	}
+    @Autowired
+    void contributeToTheEnvironment(ConfigurableEnvironment environment) {
+        environment.getPropertySources().addLast(new BootifulPropertySource());
+    }
 }
 
 class BootifulPropertySource extends PropertySource<String> {
 
-	BootifulPropertySource() {
-		super("bootiful");
-	}
+    BootifulPropertySource() {
+        super("bootiful");
+    }
 
-	@Override
-	public Object getProperty(String name) {
+    @Override
+    public Object getProperty(String name) {
 
-		if (name.equalsIgnoreCase("bootiful-message")) {
-			return "Hello from " + BootifulPropertySource.class.getSimpleName() + "!";
-		}
+        if (name.equalsIgnoreCase("bootiful-message")) {
+            return "Hello from " + BootifulPropertySource.class.getSimpleName() + "!";
+        }
 
-		return null;
-	}
+        return null;
+    }
 }
 ```
 
-Thus far weve looked almost entirely at how to souce property values from elsewhere, but we havent really talked about what becomes of th Strings once theyre in our working memory and available for us in th eaplicatin. Most of the time theyre just strings and we can ise them asis. Sometimes, however its useful to trn them into other type sof vaues - ints, Dates, doubles, etc. this work - turning strings into things - could be the topc of a whole other Spring Tips vieo and perhaps one ill do soon. Sufficie it to say that there are a lot of interellated pieces there - the `ConversionService`, `Converter<T>`s, Spring Boot's `Binder`s and so much more. For the comon times, this will just work. You can for example specify a property `server.port = 8080` and then inject it into your application as an int:
+Thus far, we've looked almost entirely at how to source property values from elsewhere. Still, we haven't talked about what becomes of the Strings once they're in our working memory and available for use in the application. Most of the time, they're just strings, and we can use them as-is. Sometimes, however, it's useful to turn them into other types of values - ints, Dates, doubles, etc. this work - turning strings into things - could be the topic of a whole other Spring Tips video and perhaps one ill do soon. Suffice it to say that there are a lot of interrelated pieces there - the `ConversionService`, `Converter<T>`s, Spring Boot's `Binder`s, and so much more. For common cases, this will just work. You can, for example, specify a property `server.port = 8080` and then inject it into your application as an int:
 
 ```java
 @Value("${server.port}") int port
 ```
 
-I tmight be nice to hve these values bound to an ojbect automatically. thi sis exactly what Spring bOots `ConfigutationProeprties` do for you. Let's see this ina ction. 
+It might be helpful to have these values bound to an object automatically. This is precisely what Spring Boots `ConfigutationProperties` do for you. Let's see this in action. 
 
-Ley's say that ou ave an application.properties file wih the follwoing property:
+Ley's say that ou ave an application.properties file with the following property:
 
 ```property
 bootiful.message = Hello from a @ConfiguratinoProperties 
@@ -383,16 +347,16 @@ import org.springframework.context.annotation.Bean;
 @EnableConfigurationProperties(BootifulProperties.class)
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigurationApplication.class, args);
-	}
-	
-	@Bean
-	ApplicationRunner applicationRunner(BootifulProperties bootifulProperties) {
-		return args -> {
-			log.info("message from @ConfigurationProperties " + bootifulProperties.getMessage());
-		};
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
+    
+    @Bean
+    ApplicationRunner applicationRunner(BootifulProperties bootifulProperties) {
+        return args -> {
+            log.info("message from @ConfigurationProperties " + bootifulProperties.getMessage());
+        };
+    }
  
 }
 
@@ -401,12 +365,12 @@ public class ConfigurationApplication {
 @ConstructorBinding
 @ConfigurationProperties("bootiful")
 class BootifulProperties {
-	private final String message;
+    private final String message;
 }
 
 ```
 
-The `@Data` and `@RequiredArgsConstructor` annotations on the `BootifulProperties` object come from Lombok. `@Data` syntheizes getters for final fields, and etters and setters for non-final fields. `@RequiredArgsConstructor` synthesizes a constructor for all the final fields int he class. The result is an object that's immutable once constructed through constructor initialization. Spring boot's ConfigurationProperties mechanism doesn't know about immutable objects by default, you need to use the `@ConstructorBinding` annotation, a fairly new addition to Spring Boot, to make it do the righ thing hre. this is even more useful in other programing languates like Kotlin (`data class ...`) and Scala (`case class ...`) which have syntax sugar fro creating immutable objects.
+The `@Data` and `@RequiredArgsConstructor` annotations on the `BootifulProperties` object come from Lombok. `@Data` synthesizes getters for final fields, and getters and setters for non-final fields. `@RequiredArgsConstructor` synthesizes a constructor for all the final fields int he class. The result is an object that's immutable once constructed through constructor initialization. Spring boot's ConfigurationProperties mechanism doesn't know about immutable objects by default; you need to use the `@ConstructorBinding` annotation, a reasonably new addition to Spring Boot, to make it do the right thing here. This is even more useful in other programming languages like Kotlin (`data class ...`) and Scala (`case class ...`) which have syntax sugar fro creating immutable objects.
 
 
 We've seen that Spring can load cofguration adjvacent to the application `.jar`, and that it can load the configuration from environment ariables and program arguments. its not hard o get information ito a Spring Boot aplication, but its sort of piecemail. It's hard to version control environment variables or to secure program arguments. 
@@ -435,9 +399,9 @@ import org.springframework.cloud.config.server.EnableConfigServer;
 @SpringBootApplication
 public class ConfigServerApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigServerApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigServerApplication.class, args);
+    }
 }
 ```
 
@@ -475,16 +439,16 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigurationApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(@Value("${message-from-config-server}") String configServer) {
-		return args -> {
-			log.info("message from the Spring Cloud Config Server: " + configServer);
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(@Value("${message-from-config-server}") String configServer) {
+        return args -> {
+            log.info("message from the Spring Cloud Config Server: " + configServer);
+        };
+    }
 }
 ```
 
@@ -534,16 +498,16 @@ import org.springframework.context.annotation.Bean;
 @SpringBootApplication
 public class ConfigurationApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ConfigurationApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
 
-	@Bean
-	ApplicationRunner applicationRunner(@Value("${message-from-vault-server:}") String valueFromVaultServer) {
-		return args -> {
-			log.info("message from the Spring Cloud Vault Server : " + valueFromVaultServer);
-		};
-	}
+    @Bean
+    ApplicationRunner applicationRunner(@Value("${message-from-vault-server:}") String valueFromVaultServer) {
+        return args -> {
+            log.info("message from the Spring Cloud Vault Server : " + valueFromVaultServer);
+        };
+    }
 }
 ```
 

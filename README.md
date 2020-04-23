@@ -370,23 +370,23 @@ class BootifulProperties {
 
 ```
 
-The `@Data` and `@RequiredArgsConstructor` annotations on the `BootifulProperties` object come from Lombok. `@Data` synthesizes getters for final fields, and getters and setters for non-final fields. `@RequiredArgsConstructor` synthesizes a constructor for all the final fields int he class. The result is an object that's immutable once constructed through constructor initialization. Spring boot's ConfigurationProperties mechanism doesn't know about immutable objects by default; you need to use the `@ConstructorBinding` annotation, a reasonably new addition to Spring Boot, to make it do the right thing here. This is even more useful in other programming languages like Kotlin (`data class ...`) and Scala (`case class ...`) which have syntax sugar fro creating immutable objects.
+The `@Data` and `@RequiredArgsConstructor` annotations on the `BootifulProperties` object come from Lombok. `@Data` synthesizes getters for final fields and getters and setters for non-final fields. `@RequiredArgsConstructor` synthesizes a constructor for all the final fields int he class. The result is an object that's immutable once constructed through constructor initialization. Spring boot's ConfigurationProperties mechanism doesn't know about immutable objects by default; you need to use the `@ConstructorBinding` annotation, a reasonably new addition to Spring Boot, to make it do the right thing here. This is even more useful in other programming languages like Kotlin (`data class ...`) and Scala (`case class ...`), which have syntax sugar for creating immutable objects.
 
 
-We've seen that Spring can load cofguration adjvacent to the application `.jar`, and that it can load the configuration from environment ariables and program arguments. its not hard o get information ito a Spring Boot aplication, but its sort of piecemail. It's hard to version control environment variables or to secure program arguments. 
+We've seen that Spring can load configuration adjacent to the application `.jar`, and that it can load the configuration from environment variables and program arguments. It's not hard o get information into a Spring Boot application, but its sort of piecemeal. It's hard to version control environment variables or to secure program arguments. 
 
-To solve some of these problems the Spring Coud tam built the spring CLou COnfigu Server. The Spring Cloud Config Server is an HTTP API that fronts a backend storage engine. The storage s pluggable, with the most common being a Git repository thoguht there is suport for others as well. These include SUbversion, a local file system, and even [MongDB](https://github.com/spring-cloud-incubator/spring-cloud-config-server-mongodb). 
+To solve some of these problems, the Spring Cloud team built the spring CLou COnfigu Server. The Spring Cloud Config Server is an HTTP API that fronts a backend storage engine. The storage s pluggable, with the most common being a Git repository, though there is support for others as well. These include SUbversion, a local file system, and even [MongDB](https://github.com/spring-cloud-incubator/spring-cloud-config-server-mongodb). 
 
-We're goin to setup a nw Spring Cloud Cpnfig Server. Go to the Spring Initializr and choose `Config Server` and then click `Generate`. Open it in you favorite IDE.
+We're going to set up a new Spring Cloud Config Server. Go to the Spring Initializr and choose `Config Server` and then click `Generate`. Open it in your favorite IDE.
 
-We're going to need to do two things to make it work: first we must use an annotation and then provide ac ofniguration value to point it to the Git repository with out configuration file.  Here'sw aht your application.properties should look like.
+We're going to need to do two things to make it work: first, we must use an annotation and then provide a configuration value to point it to the Git repository with our configuration file.  Here are the `application.properties`.
 
 ```properties
 spring.cloud.config.server.git.uri=https://github.com/joshlong/greetings-config-repository.git
 server.port=8888
 ```
 
-And here's what yor main class should look like.
+And here's what your main class should look like.
 
 ```java
 package com.example.configserver;
@@ -405,11 +405,11 @@ public class ConfigServerApplication {
 }
 ```
 
-Run the application - `mvn spring-boot:run` or just run the application in your favorite IDe. It's now available. It'll act as a proxy to the Git configuration in teh Github repository. Other clients can then use the Spring clou dCOnfi client to pull their configuration in from the Spring Clloud Config Server which will in turn pull it in from the Gi repository. Note: im making this as insecure as possible for ease of the demo, ut you can and should secur eboth link sin the chain - from the config client ot th eocnfig server, and from the config server to the git repository. Spring Cloud Config Server, the Spring Cloud COnfiug Clientt and Gihub all work well together, and securely. 
+Run the application - `mvn spring-boot:run` or just run the application in your favorite IDe. It's now available. It'll act as a proxy to the Git configuration in the Github repository. Other clients can then use the Spring Cloud Config Client to pull their configuration in from the Spring Cloud Config Server, which will, in turn, pull it in from the Gi repository. Note: I'm making this as insecure as possible for ease of the demo, ut you can and should secure both links in the chain - from the config client to the config server, and from the config server to the git repository. Spring Cloud Config Server, the Spring Cloud Config Client, and Github all work well together, and securely. 
 
-Now, go bck to the build for our configuration app and makes rue to uncommment the PSrin fCLoud Config Client dpeendnecy. In order fo rht elcient server, itll need to have some - you guessed it! - confgiuration. A classic chicken and egg problem. This configuration needs to be evaluated earlier, before the rest of the configuration. You can pput this configuration in a file called `bootstrap.properties`. 
+Now, go back to the build for our configuration app and makes rue to uncomment the Spring Cloud Config Client dependency. To start the Spring Cloud Config Server, it'll need to have some - you guessed it! - configuration. A classic chicken and egg problem. This configuration needs to be evaluated earlier, before the rest of the configuration. You can put this configuration in a file called `bootstrap.properties`. 
 
-You'll need to identify yor application, to give it a name, so that when it connects to th Spring Xloud cnfig Server, it will know hich configuration to give us. The name we specify her will be matches to a property file in the Git repository. Here's what you should put in the file.
+You'll need to identify your application to give it a name so that when it connects to the Spring Cloud Config Server, it will know which configuration to provide us. The name we specify here will be matched to a property file in the Git repository. Here's what you should put in the file.
 
 ```
 spring.cloud.config.uri=http://localhost:8888
@@ -423,7 +423,7 @@ message-from-config-server = Hello, Spring Cloud Config Server
 ```
 
 
-We can pull that confguration file in luke this: 
+We can pull that configuration file in like this: 
 
 ```java
 package com.example.configuration.configclient;
@@ -452,11 +452,11 @@ public class ConfigurationApplication {
 }
 ```
 
-You should see the value in the output. Not bad! The Spring Cloud Config Serer does a lot of cool stuff for us. It can encrupt values for us. It can help version out properties. One of my favorite things is that you can change the configuration independant of the change sto the codebase. You can use that in conjunction with the Spring Cloud `@RefreshScope` to dynamcially reconfigure an appkication adter its started running. (I should really do a video on the refresh scope and its myriad many uses...) The Spring Cloud Config Server is among the most popular Sprtin Cloud modules for a rason   - it can be used with monoliths and microservices alike. 
+You should see the value in the output. Not bad! The Spring Cloud Config Server does a lot of cool stuff for us. It can encrypt values for us. It can help version out properties. One of my favorite things is that you can change the configuration independent of the change to the codebase. You can use that in conjunction with the Spring Cloud `@RefreshScope` to dynamically reconfigure an application after it started running. (I should do a video on the refresh scope and its many myriad uses...) The Spring Cloud Config Server is among the most popular Spring Cloud modules for a reason   - it can be used with monoliths and microservices alike. 
 
-The Sprin fCloud Config Server can encrypt values in the property files, if you configure it appripriately. it works. A lot of folks also use Hashicorp's excellent Vault product which is a much more fully featured offering for security. Vault can secure, store and tightly control access to tokens, passwords, certificates, encryption keys  for protecting secrets and other sensitive data using a UI, CLI, or HTTP API. You can also use this easily as a property source using the Spring Cloud Vault project. Uncomment the Sring Cloud Vault depenecy fro teh build and lets look at setting up Hashicorp Vault. 
+The Spring Cloud Config Server can encrypt values in the property files if you configure it appropriately. It works. A lot of folks also use Hashicorp's excellent Vault product, which is a much more fully-featured offering for security. Vault can secure, store, and tightly control access to tokens, passwords, certificates, encryption keys for protecting secrets, and other sensitive data using a UI, CLI, or HTTP API. You can also use this easily as a property source using the Spring Cloud Vault project. Uncomment the Sring Cloud Vault dependency from the build, and let us look at setting up Hashicorp Vault. 
 
-Downloa the latest version and then run he following commands. I'm assuming a Linix or Unix-like environment. It should be fairly straightforward to translate to Windows, though. I wont try to explain everything about Vault, Id rfer you to the excellent Getting Statted guides for [Hashicorp Vault](https://learn.hashicorp.com/vault/getting-started/install), instead. Here's the least-secure, but quickest, way I know to get this all setup and working. First, run the Vault server. I'm providing a root token here, but you would normally us the token rprovided by Vault on startup. 
+Download the latest version and then run the following commands. I'm assuming a Linux or Unix-like environment. It should be fairly straightforward to translate to Windows, though. I won't try to explain everything about Vault, Id refer you to the excellent Getting Statted guides for [Hashicorp Vault](https://learn.hashicorp.com/vault/getting-started/install), instead. Here's the least-secure, but quickest, the way I know to get this all set up and working. First, run the Vault server. I'm providing a root token here, but you would typically use the token provided by Vault on startup. 
 
 ```shell
 export VAULT_ADDR="https://localhost:8200"
@@ -465,7 +465,7 @@ export VAULT_TOKEN=00000000-0000-0000-0000-000000000000
 vault server --dev --dev-root-token-id="00000000-0000-0000-0000-000000000000"
 ```
 
-Once that's up, in another cshell, install some values into the Vault server, like this.
+Once that's up, in another shell, install some values into the Vault server, like this.
 
 ```shell
 export VAULT_ADDR="http://localhost:8200"
@@ -474,7 +474,7 @@ export VAULT_TOKEN=00000000-0000-0000-0000-000000000000
 vault kv put secret/bootiful message-from-vault-server="Hello Spring Cloud Vault"
 ```
 
-That puts the key `message-from-vault-server` with a value `Hello Spring Cloud Vault` into the Vault service. Now, let's change our application to connect to that Vault instance to read the secure values. Well need a bootstrap.properties, just as with the Sprin Cloud Confg Client. 
+That puts the key `message-from-vault-server` with a value `Hello Spring Cloud Vault` into the Vault service. Now, let's change our application to connect to that Vault instance to read the secure values. We'll need a bootstrap.properties, just as with the Spring Cloud Config Client. 
 
 ```properties
 spring.application.name=bootiful
@@ -482,7 +482,7 @@ spring.cloud.vault.token=${VAULT_TOKEN}
 spring.cloud.vault.scheme=http
 ```
 
-Thn, you can use the property just like any other ocnfuguration values. 
+Then, you can use the property just like any other configuration values. 
 
 ```java
 package com.example.configuration.vault;
@@ -511,8 +511,10 @@ public class ConfigurationApplication {
 }
 ```
 
-Now, before you run this, make sure to also have the same three envitronment variables we used in the tow interactions with the `vault` CLI configured: `VAULT_TOKEN`, `VAULT_SKIP_VERIFY`, and `VAULT_ADDR`. Then run it and you should see reflected on the console the value that you write to Hashicorp Vault. 
+Now, before you run this, make sure also to have the same three environment variables we used in the tow interactions with the `vault` CLI configured: `VAULT_TOKEN`, `VAULT_SKIP_VERIFY`, and `VAULT_ADDR`. Then run it, and you should see reflected on the console the value that you write to Hashicorp Vault. 
 
 ## Next Steps
 
-Hopefully you've learned something about the colorful and compelling world of configuration in SPring. With this information under your belt, youre now better prpeared to use the other projects that suport property resolution. Armed as you are with a knowledge of how this works and some of the possible appications, you're ready to look at the Spring Cloud Netflux  Archaius integration, or how to use Configmaps with Spring Cloud Kubernetes, or the    Google Runtime Configuration API with Spring Cloud GCP, or the Microsoft Azure Key Vault with Spring Cloud Azure and the hsoted Azure Spring Cloud runtime, etc. I've only mentioned a few offerings here, but it doesn't matter if the list is exhautive, their use will be basically the same if the inegration is done correctly: the cloud's the limit! 
+Hopefully, you've learned something about the colorful and compelling world of configuration in SPring. With this information under your belt, you're now better prepared to use the other projects that support property resolution. Armed with this knowledge of how this works, you're ready to integrate configuration from different Spring integrations, of which there are a _ton_! You might use the Spring Cloud Netflix' Archaius integration, or the Configmaps integration with Spring Cloud Kubernetes, or the Spring Cloud GCP's Google Runtime Configuration API integration, or  Spring Cloud Azure's Microsoft Azure Key Vault integration, etc.
+
+I've only mentioned a few offerings here, but it doesn't matter if the list is exhaustive, their use will be the same if the integration is correct: the cloud's the limit! 

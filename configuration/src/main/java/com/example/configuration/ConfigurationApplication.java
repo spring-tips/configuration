@@ -43,8 +43,8 @@ public class ConfigurationApplication {
 		@Value("${message-from-program-args:}") String messageFromProgramArgs,
 		@Value("${greetings-message:Default Hello: ${message-from-application-properties} }") String defaultValue,
 		@Value("${bootiful-message}") String bootifulMessage,
-		@Value("${message-from-config-server}") String valueFromConfigServer,
-		@Value("${message-from-vault-server}") String valueFromVaultServer,
+		@Value("${message-from-config-server:}") String valueFromConfigServer,
+		@Value("${message-from-vault-server:}") String valueFromVaultServer,
 		BootifulProperties bootifulProperties
 	) {
 		return args -> {

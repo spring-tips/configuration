@@ -8,7 +8,7 @@ Hi, Spring fans! Welcome to another installment of Spring tips! in this installm
 
 All configuration in Spring emanates from the Spring `Environment` abstraction. The `Environment` is sort of like a dictionary - a map with keys and values. `Environment` is just an interface through which we can ask questions about, you know, the `Environment`. The abstraction lives in Spring Framework and was introduced in Spring 3, more than a decade ago. up until that point, there was a focused mechanism to allow integration of configuration called property placeholder resolution. This environment mechanism and the constellation of classes around that interface more than supersede that old support. if you find a blog still using those types, may I suggest you move on to newer and greener pastures? :) 
 
-Let's get started. Go to the Spring Initializr and generate a new project and make sure to choose `Spring Cloud Vault`, `Lombok`, and  `Spring Cloud Config Client`. I named my project `configuration`. Go ahead and click `Generate` to generate the application. Open the project in your favorite IDE. If you want to follow along, be sure to disable the Spring Cloud Vault and Spring Cloud Config Client dependencies in your `pom.xml` by commenting them out. We don't need them right now.
+Let's get started. Go to the Spring Initializr and generate a new project and make sure to choose `Spring Cloud Vault`, `Spring Boot Configuration Processor`, `Actuator`, `Reactive Web`, `Lombok`, and  `Spring Cloud Config Client`. I named my project `configuration`. Go ahead and click `Generate` to generate the application. Open the project in your favorite IDE. If you want to follow along, be sure to disable the `Reactive Web`, `Actuator`, `Spring Cloud Vault` and `Spring Cloud Config Client` dependencies in your `pom.xml` by commenting them out. We don't need them right now.
 
 The first step for most Spring Boot developers is to use `application.properties`. The Spring Initializr even puts an empty `application.properties` in the `src/main/resources/application.properties.` folder when you generate a new project! Super convenient. (You _do_ create your projects on the Spring Initializr, don't ya'?)  You could use `application.properties` or `application.yml`. I don't particularly love `.yml` files, but you can use 'em if  they're more your taste! 
 
@@ -385,23 +385,34 @@ class BootifulPropertySource extends PropertySource<String> {
 
 ```
 
+Spring Boot won't know about this class unless you tell it about it. Create a file, `src/main/resources/META-INF/spring.factories`, and add the following entry:
+
+```properties
+org.springframework.boot.env.EnvironmentPostProcessor=com.example.configuration.environmentpostprocessor.BootifulEnvironmentProcessor
+```
+
+Start the application and you should see the logging appear confirming that Spring Boot is aware of the new configuration! 
+
 Thus far, we've looked almost entirely at how to source property values from elsewhere. Still, we haven't talked about what becomes of the Strings once they're in our working memory and available for use in the application. Most of the time, they're just strings, and we can use them as-is. Sometimes, however, it's useful to turn them into other types of values - `int`s, `Date`s, `double`s, etc. This work - turning `String`s into things - could be the topic of a whole other [_Spring Tips_](http://bit.ly/spring-tips-playlist) video and perhaps one I'll do soon. Suffice it to say that there are a lot of interrelated pieces there - the `ConversionService`, `Converter<T>`s, Spring Boot's `Binder`s, and so much more. For common cases, this will just work. You can, for example, specify a property `server.port = 8080` and then inject it into your application as an `int`:
 
 ```java
 @Value("${server.port}") int port
 ```
 
-It might be helpful to have these values bound to an object automatically. This is precisely what Spring Boot's `ConfigutationProperties` do for you. Let's see this in action. 
+It might be helpful to have these values bound to an object automatically based on convention. Spring Boot has a ton of properties that leverage this very mechanism to make providing auto-configuration easier. We, the users of Spring Boot, provide a few properties, those get bound up into objects that the pre-provided Spring Boot autoconfiguration code then injects and dereferences to figure out how to do what we want it to do. But the mechanism is open to everyone. You can even get that nifty auto-completion for properties in your `application.properties` or `application.yml` in your favorite IDE, be it IntelliJ Ultimate, Eclipse, Netbeans, VS Code, etc., if you add the `Spring Boot Configuration Processor` to the build. This generates an index that all the aforementioned tools know how to read in to drive their autocompletion. Try it out. Add the following dependency.
 
-Ley's say that ou ave an `application.properties` file with the following property:
-
-```property
-bootiful.message = Hello from a @ConfiguratinoProperties 
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-configuration-processor</artifactId>
+    <optional>true</optional>
+</dependency>
 ```
 
-Then you can run the application and see that the configuration value has been bound to the object for us: 
+In this example we'll define a `@ConfigurationProperties`-annotatd object with a property prefix, `bootifulcp`, and then specify some configuration values. Here's the relevant Java code.
 
 ```java
+
 package com.example.configuration.cp;
 
 import lombok.Data;
@@ -411,7 +422,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 
@@ -423,36 +433,48 @@ public class ConfigurationApplication {
     public static void main(String[] args) {
         SpringApplication.run(ConfigurationApplication.class, args);
     }
-    
+
     @Bean
     ApplicationRunner applicationRunner(BootifulProperties bootifulProperties) {
         return args -> {
-            log.info("message from @ConfigurationProperties " + bootifulProperties.getMessage());
+            log.info("message from @ConfigurationProperties bootifulcp.message: " + bootifulProperties.getMessage());
+            log.info("message from @ConfigurationProperties bootifulcp.favorite-number: " + bootifulProperties.getFavoriteNumber());
         };
     }
- 
+
 }
 
 @Data
 @RequiredArgsConstructor
-@ConstructorBinding
-@ConfigurationProperties("bootiful")
+@ConfigurationProperties("bootifulcp")
 class BootifulProperties {
-    private final String message;
+    private int favoriteNumber;
+    private String message;
 }
-
 ```
 
-The `@Data` and `@RequiredArgsConstructor` annotations on the `BootifulProperties` object come from Lombok. `@Data` synthesizes getters for final fields and getters and setters for non-final fields. `@RequiredArgsConstructor` synthesizes a constructor for all the final fields int he class. The result is an object that's immutable once constructed through constructor initialization. Spring boot's ConfigurationProperties mechanism doesn't know about immutable objects by default; you need to use the `@ConstructorBinding` annotation, a reasonably new addition to Spring Boot, to make it do the right thing here. This is even more useful in other programming languages like Kotlin (`data class ...`) and Scala (`case class ...`), which have syntax sugar for creating immutable objects.
+At this point I usually rebuild the project. Worst case, you might need to do `mvn clean package` on the command line and then reimport the project into your IDE so that the IDE sees the updated index generated by the `Spring Boot Configuration Processor`.
 
+Now let's define configuration values for the properties in `application.properties` (`bootifulcp.message`, `bootifulcp.favorite-number`) and we'll see those bound to the object.
 
-We've seen that Spring can load configuration adjacent to the application `.jar`, and that it can load the configuration from environment variables and program arguments. It's not hard o get information into a Spring Boot application, but its sort of piecemeal. It's hard to version control environment variables or to secure program arguments. 
+```property
+bootiful.message = Hello from a @ConfiguratinoProperties 
+bootiful.favorite-number = 42
+```
 
-To solve some of these problems, the Spring Cloud team built the spring CLou COnfigu Server. The Spring Cloud Config Server is an HTTP API that fronts a backend storage engine. The storage s pluggable, with the most common being a Git repository, though there is support for others as well. These include SUbversion, a local file system, and even [MongDB](https://github.com/spring-cloud-incubator/spring-cloud-config-server-mongodb). 
+You can run the application and see that the configuration value has been bound to the object for us.
 
-We're going to set up a new Spring Cloud Config Server. Go to the Spring Initializr and choose `Config Server` and then click `Generate`. Open it in your favorite IDE.
+This `@ConfigurationProperties` class uses JavaBean-style properties. You can  use `@ConstructorBinding`, in addition to the existing properties, if you prefer constructor-centric binding instead of mutable properties ("setters").
 
-We're going to need to do two things to make it work: first, we must use an annotation and then provide a configuration value to point it to the Git repository with our configuration file.  Here are the `application.properties`.
+We've seen that Spring can load configuration adjacent to the application `.jar`, and that it can load the configuration from environment variables and program arguments. It's not hard to get information into a Spring Boot application, but its sort of piecemeal. It's hard to version control environment variables or to secure program arguments. 
+
+To solve some of these problems, the Spring Cloud team built the [Spring Cloud Config Server](https://cloud.spring.io/spring-cloud-config/multi/multi__spring_cloud_config_server.html). The Spring Cloud Config Server is an HTTP API that fronts a backend storage engine. The storage is pluggable, with the most common being a Git repository, though there is support for others as well. These include Subversion, a local file system, and even [MongoDB](https://github.com/spring-cloud-incubator/spring-cloud-config-server-mongodb). 
+
+We're going to set up a new Spring Cloud Config Server. Go to the Spring Initializr, search for `Config Server`, and then click `Generate`. Open the resulting project in your favorite IDE.
+
+We're going to need to do two things to make it work: first, we must use an annotation and then provide a configuration value to point it to the Git repository with our configuration file. Here, I'm using an open Github repository, but there's no reason you couldn't use any arbitrary Git repository and there's no reason that repository couldn't require authentication. All of these things are, you guessed it, _configurable_. 
+
+Here is our `application.properties`:
 
 ```properties
 spring.cloud.config.server.git.uri=https://github.com/joshlong/greetings-config-repository.git
@@ -478,25 +500,33 @@ public class ConfigServerApplication {
 }
 ```
 
-Run the application - `mvn spring-boot:run` or just run the application in your favorite IDe. It's now available. It'll act as a proxy to the Git configuration in the Github repository. Other clients can then use the Spring Cloud Config Client to pull their configuration in from the Spring Cloud Config Server, which will, in turn, pull it in from the Gi repository. Note: I'm making this as insecure as possible for ease of the demo, ut you can and should secure both links in the chain - from the config client to the config server, and from the config server to the git repository. Spring Cloud Config Server, the Spring Cloud Config Client, and Github all work well together, and securely. 
+Run the application - `mvn spring-boot:run` or just run the application in your favorite IDE. It'll act as a proxy to the Git configuration in the Github repository. Other clients can then use the Spring Cloud Config Client to pull their configuration in from the Spring Cloud Config Server, which will, in turn, pull it in from the Git repository. Please note, again, that I'm making this as insecure as possible for expediency of the demo, but you can (and should!) secure both links in the chain - from the config client to the config server, and from the config server to the Git repository. Spring Cloud Config Server, the Spring Cloud Config Client, and Github all work well together, and securely. 
 
-Now, go back to the build for our configuration app and makes rue to uncomment the Spring Cloud Config Client dependency. To start the Spring Cloud Config Server, it'll need to have some - you guessed it! - configuration. A classic chicken and egg problem. This configuration needs to be evaluated earlier, before the rest of the configuration. You can put this configuration in a file called `bootstrap.properties`. 
+Now we need to connect our `configuration` client to the service. Edit the `pom.xml` for the client and uncomment the Spring Cloud Config Client dependency.  To successfully connect to the Spring Cloud Config Server, our client will need to have some - you guessed it! - _configuration_ to tell our client where to find the Spring Cloud Config Server instance. A classic chicken and egg problem if ever there was one. This bootstrap configuration needs to be evaluated earlier, before the rest of the configuration for the application is loaded. You can put this configuration in a file called `src/main/resources/bootstrap.properties`. 
 
-You'll need to identify your application to give it a name so that when it connects to the Spring Cloud Config Server, it will know which configuration to provide us. The name we specify here will be matched to a property file in the Git repository. Here's what you should put in the file.
+You'll need to identify your application - give it a name - so that the Spring Cloud Config Server will know which configuration to provide for us when it loads. The name we specify here will be matched to a property file in the Git repository. Here's what you should put in the file.
 
-```
+```properties
 spring.cloud.config.uri=http://localhost:8888
 spring.application.name=bootiful
 ```
 
-now we can read any value we want in the git repository in the `bootiful.properties` file whose contents are:
+When our client connects, it'll have access to everything in `application.properties` and everything in `bootiful.properties` in the Git repository. It'll even go one step further: if you run the client with a Spring profile active, that will let you load a configuration file with a profile, e.g., `bootiful-dev.properties`. 
+
+Now we can read any value we want in the git repository in the `bootiful.properties` file. I've got the following in my `bootiful.properties`.
 
 ```
 message-from-config-server = Hello, Spring Cloud Config Server
 ```
 
+You can see what information the client will see by asking the Spring Cloud Config Server itself:
 
-We can pull that configuration file in like this: 
+```shell
+curl http://localhost:8888/bootiful/default
+```
+
+With all that background out of the way, we can inject any value we want just as before. Our Java code remains blissfully ignorant of the origin of the configuration.
+
 
 ```java
 package com.example.configuration.configclient;
@@ -525,7 +555,70 @@ public class ConfigurationApplication {
 }
 ```
 
-You should see the value in the output. Not bad! The Spring Cloud Config Server does a lot of cool stuff for us. It can encrypt values for us. It can help version out properties. One of my favorite things is that you can change the configuration independent of the change to the codebase. You can use that in conjunction with the Spring Cloud `@RefreshScope` to dynamically reconfigure an application after it started running. (I should do a video on the refresh scope and its many myriad uses...) The Spring Cloud Config Server is among the most popular Spring Cloud modules for a reason   - it can be used with monoliths and microservices alike. 
+You should see the value in the output. Not bad! The Spring Cloud Config Server does a lot of cool stuff for us. 
+
+One interesting possibility that arises from this arrangement - having our configuration live external to our running JVM process in a mutable Spring Cloud Config Server - is that we can leverage Spring Cloud's `@RefreshScope` to dynamically reconfigure - to refactory them - beans that have changed via the Spring Boot Actuator. Uncomment the `Reactive Web` and `Actuator` support in the `pom.xml`. Add the following configuration to your client's `application.properties`: `management.endpoints.web.exposure.include=*`.
+
+Here's the updated Java code demonstrating our application's ability to respond to external changes. 
+
+```java
+package com.example.configuration.refresh;
+
+import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
+import org.springframework.cloud.context.scope.refresh.RefreshScopeRefreshedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+@Log4j2
+@SpringBootApplication
+public class ConfigurationApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigurationApplication.class, args);
+    }
+}
+
+
+@Log4j2
+@Component
+@RefreshScope
+class Refreshable {
+
+    Refreshable(@Value("${message-from-config-server}") String msg) {
+        log.info("value(s) in " + ConfigurationProperties.class.getName() + " bean is: " + msg);
+    }
+}
+
+```
+
+Confirm that when the application starts up, it logs out the configuration value from the config server as we expect it to. Then, change the value (it doesn't matter to what) in the origin Git repository and then run the following command to trigger an Actuator refresh endpoint and see that it recreates the `@RefreshScope`-annotated bean _in-situ_ and that you observe the updated value logged out:
+
+```shell
+$ curl localhost:8080/actuator/refresh -d {} -H "Content-Type: application/json"
+```
+
+You can take this a step further and generally make any component aware of the refresh event having been invoked. These beans may then reconfigure themselves (by reading in configuration and responding to it, for example).
+
+
+Here's a `RefreshScopeRefreshedEvent` listener example: 
+
+```java
+@Log4j2
+@Component
+class RefreshListener {
+
+    @EventListener
+    public void refreshed(RefreshScopeRefreshedEvent rsre) {
+        log.info("something has changed! " + rsre.getName());
+    }
+}
+
+```
 
 The Spring Cloud Config Server can encrypt values in the property files if you configure it appropriately. It works. A lot of folks also use Hashicorp's excellent Vault product, which is a much more fully-featured offering for security. Vault can secure, store, and tightly control access to tokens, passwords, certificates, encryption keys for protecting secrets, and other sensitive data using a UI, CLI, or HTTP API. You can also use this easily as a property source using the Spring Cloud Vault project. Uncomment the Sring Cloud Vault dependency from the build, and let us look at setting up Hashicorp Vault. 
 
